@@ -27,7 +27,7 @@ export default {
       }
     },
     async addTask(newTask) {
-      this.tasks = [...this.tasks, await this.createTask(newTask)]
+      this.tasks = [...this.tasks, await this.createTask({ ...newTask, id: Math.random() })]
       this.resetFormValues()
     },
     async removeTask(taskId) {
@@ -40,43 +40,81 @@ export default {
       const update = await this.updateTask({ ...taskToUpdate, reminder: !taskToUpdate.reminder })
       if (update) this.tasks = this.tasks.map(task => task._id === update.id ? update : task)
       else alert('Error updating task')
-      console.log(taskToUpdate.reminder, update.reminder)
     },
     async fetchTasks() {
-      const res = await fetch('/api/tasks')
-      const tasks = await res.json()
-      return tasks
+      try {
+        const res = await fetch('/api/tasks')
+        const tasks = await res.json()
+        if (res.status === 200) return tasks
+      } catch (err) {
+        const tasksInLsStr = localStorage.getItem('tasks')
+        const tasksInLs = JSON.parse(tasksInLsStr)
+        return Array.isArray(tasksInLs) ? tasksInLs : []
+      }
+
     },
     async fetchTask(taskId) {
-      const res = await fetch(`/api/tasks/${taskId}`)
-      const tasks = await res.json()
-      return tasks
+      try {
+        const res = await fetch(`/api/tasks/${taskId}`)
+        const task = await res.json()
+        return task
+      }
+      catch (err) {
+        const tasksInLsStr = localStorage.getItem('tasks')
+        const tasksInLs = JSON.parse(tasksInLsStr)
+        return (tasksInLs || []).find(tsk => tsk.id === taskId)
+      }
     },
     async createTask(task) {
-      const res = await fetch('/api/tasks', {
-        method: 'POST',
-        body: JSON.stringify(task),
-        headers: {
-          'Content-type': 'application/json',
-        }
-      })
-      return await res.json()
+      try {
+        const res = await fetch('/api/tasks', {
+          method: 'POST',
+          body: JSON.stringify(task),
+          headers: {
+            'Content-type': 'application/json',
+          }
+        })
+        return await res.json()
+      }
+      catch (err) {
+        const tasksInLsStr = localStorage.getItem('tasks')
+        const tasksInLs = JSON.parse(tasksInLsStr)
+        const modifiedTasksForLs = [...(tasksInLs || []), task]
+        localStorage.setItem('tasks', JSON.stringify(modifiedTasksForLs))
+        return task
+      }
     },
     async updateTask(update) {
-      const res = await fetch(`/api/tasks/${update.id}`, {
-        method: 'PUT',
-        body: JSON.stringify(update),
-        headers: {
-          'Content-type': 'application/json',
-        }
-      })
-      return await res.json()
+      try {
+        const res = await fetch(`/api/tasks/${update.id}`, {
+          method: 'PUT',
+          body: JSON.stringify(update),
+          headers: {
+            'Content-type': 'application/json',
+          }
+        })
+        return await res.json()
+      }
+      catch (err) {
+        const tasksInLsStr = localStorage.getItem('tasks')
+        const tasksInLs = JSON.parse(tasksInLsStr)
+        const modifiedTasksForLs = [...(tasksInLs || []).map(tsk => tsk.id === update.id ? update : tsk)]
+        localStorage.setItem('tasks', JSON.stringify(modifiedTasksForLs))
+        return update
+      }
     },
     async deleteTask(taskId) {
       const res = await fetch(`/api/tasks/${taskId}`, {
         method: 'DELETE'
       })
-      return res.status === 200
+      if (res.status === 200) return res.status === 200
+      else {
+        const tasksInLsStr = localStorage.getItem('tasks')
+        const tasksInLs = JSON.parse(tasksInLsStr)
+        const modifiedTasksForLs = (tasksInLs || []).filter(tsk => tsk.id === taskId)
+        localStorage.setItem('tasks', JSON.stringify(modifiedTasksForLs))
+        return true
+      }
     }
   },
   data: () => ({
