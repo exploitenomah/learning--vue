@@ -16,20 +16,30 @@ export default {
             }
         }
     },
-
+    emits: [
+        "delete-me", 'toggle-my-reminder'
+    ]
 }
 
 </script>
 
 <template>
     <div>
-        <h3>{{ task.description }}
-        </h3>
-        <p>
-            <span>{{ task.date.toString() }}</span>
-            <span>{{ task.time }}</span>
-        </p>
     </div>
+    <h3>{{ task.description }}
+    </h3>
+    <p>
+        <span>{{ task.date }}</span>
+        <span>{{ task.time }}</span>
+    </p>
+
+    <div>
+        <button @click='$emit("delete-me")'>delete
+        </button>
+    </div>
+    <label>
+        <input type='checkbox' :checked='task.reminder' @click="$emit('toggle-my-reminder')" />
+    </label>
 </template>
 
 <style scoped></style>

@@ -15,7 +15,8 @@ export default {
 <template>
   <ul>
     <li v-for="task in tasks" :key="task.id">
-      <TaskItem :task='task' />
+      <TaskItem @toggle-my-reminder='$emit("toggle-reminder", task.id)' @delete-me='$emit("delete-task", task.id)'
+        :task='task' />
     </li>
   </ul>
 </template>

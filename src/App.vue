@@ -18,18 +18,65 @@ export default {
       if (type === 'checkbox') this.formValues = { ...this.formValues, [name]: checked }
       else this.formValues = { ...this.formValues, [name]: value }
     },
-    handleSubmit(e) {
-      e.preventDefault()
-      const { description, date, time } =
-        this.formValues
-      if (description.length === 0 || date.length === 0 || time.length === 0) return
-      this.tasks = [...this.tasks, { ...this.formValues, id: Math.random() }]
+    resetFormValues() {
       this.formValues = {
         ...this.formValues, date: '',
         reminder: false,
+        time: '',
         description: ''
       }
-      e.target.reset()
+    },
+    async addTask(newTask) {
+      this.tasks = [...this.tasks, await this.createTask(newTask)]
+      this.resetFormValues()
+    },
+    async removeTask(taskId) {
+      const isDeleted = await this.deleteTask(taskId)
+      if (isDeleted) this.tasks = this.tasks.filter(task => task._id === taskId)
+      else alert('Error deleting task')
+    },
+    async toggleReminder(taskId) {
+      const taskToUpdate = await this.fetchTask(taskId)
+      const update = await this.updateTask({ ...taskToUpdate, reminder: !taskToUpdate.reminder })
+      if (update) this.tasks = this.tasks.map(task => task._id === update.id ? update : task)
+      else alert('Error updating task')
+      console.log(taskToUpdate.reminder, update.reminder)
+    },
+    async fetchTasks() {
+      const res = await fetch('/api/tasks')
+      const tasks = await res.json()
+      return tasks
+    },
+    async fetchTask(taskId) {
+      const res = await fetch(`/api/tasks/${taskId}`)
+      const tasks = await res.json()
+      return tasks
+    },
+    async createTask(task) {
+      const res = await fetch('/api/tasks', {
+        method: 'POST',
+        body: JSON.stringify(task),
+        headers: {
+          'Content-type': 'application/json',
+        }
+      })
+      return await res.json()
+    },
+    async updateTask(update) {
+      const res = await fetch(`/api/tasks/${update.id}`, {
+        method: 'PUT',
+        body: JSON.stringify(update),
+        headers: {
+          'Content-type': 'application/json',
+        }
+      })
+      return await res.json()
+    },
+    async deleteTask(taskId) {
+      const res = await fetch(`/api/tasks/${taskId}`, {
+        method: 'DELETE'
+      })
+      return res.status === 200
     }
   },
   data: () => ({
@@ -42,20 +89,17 @@ export default {
     tasks: [],
     showForm: false
   }),
-  created() {
-    // this.tasks = [{}]
-  },
-  mounted() {
-  },
-  unmounted() { }
+  async created() {
+    this.tasks = await this.fetchTasks()
+  }
 }
 </script>
   
 <template>
   <Header title='Task Tracker' @toggle-show-form='handleToggleShowForm' />
-  <TaskList :tasks='tasks' :show='tasks.length > 0' />
+  <TaskList @toggle-reminder='toggleReminder' @delete-task='removeTask' :tasks='tasks' :show='tasks.length > 0' />
   <div v-show="tasks.length === 0">Tasks added will be shown here</div>
-  <TaskForm :show='showForm' @change-event='handleFormChangeEvent' @submit-event='handleSubmit' />
+  <TaskForm :show='showForm' @change-event='handleFormChangeEvent' @add-task='addTask' />
 </template>
 
 
