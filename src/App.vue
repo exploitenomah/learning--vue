@@ -53,7 +53,8 @@ export default {
   
 <template>
   <Header title='Task Tracker' @toggle-show-form='handleToggleShowForm' />
-  <TaskList :tasks='tasks' />
+  <TaskList :tasks='tasks' :show='tasks.length > 0' />
+  <div v-show="tasks.length === 0">Tasks added will be shown here</div>
   <TaskForm :show='showForm' @change-event='handleFormChangeEvent' @submit-event='handleSubmit' />
 </template>
 
